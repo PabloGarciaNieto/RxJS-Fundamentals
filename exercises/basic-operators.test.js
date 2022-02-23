@@ -15,6 +15,7 @@ import { fibonacci } from '../utilities/fibonacci';
  * Returns all of the values emitted by an observable as an array.
  * I'm tired of typing this out for every test.
  */
+
 const getResult = async (observable) => {
   return new Promise((resolve, reject) => {
     const result = [];
@@ -23,15 +24,18 @@ const getResult = async (observable) => {
       error: reject,
       complete: () => {
         resolve(result);
-        subscription.unsubscribe();
+        if (subscription) subscription.unsubscribe();
       },
     });
   });
 };
 
 describe('Basic Operators', () => {
-  it.skip('should take the first 5 values and map them to the word "DINOSAUR"', async () => {
-    const observable$ = of(1, 2, 3, 4, 5, 6, 7).pipe();
+  it('should take the first 5 values and map them to the word "DINOSAUR"', async () => {
+    const observable$ = of(1, 2, 3, 4, 5, 6, 7).pipe(
+      take(5),
+      mapTo('DINOSAUR')
+    );
 
     return expect(await getResult(observable$)).toEqual([
       'DINOSAUR',
@@ -42,31 +46,42 @@ describe('Basic Operators', () => {
     ]);
   });
 
-  it.skip('should skip the first 5 values and double last two', async () => {
-    const observable$ = of(1, 2, 3, 4, 5, 6, 7).pipe();
+  it('should skip the first 5 values and double last two', async () => {
+    const observable$ = of(1, 2, 3, 4, 5, 6, 7).pipe(
+      skip(5),
+      map((val) => val * 2)
+    );
 
     return expect(await getResult(observable$)).toEqual([12, 14]);
   });
 
-  it.skip('should emit the square of every even number in the stream', async () => {
-    const observable$ = of(1, 2, 3, 4, 5, 6, 7).pipe();
+  it('should emit the square of every even number in the stream', async () => {
+    const observable$ = of(1, 2, 3, 4, 5, 6, 7).pipe(
+      filter((val) => val % 2 === 0),
+      map((val) => val ** 2 )
+    );
 
     return expect(await getResult(observable$)).toEqual([4, 16, 36]);
   });
 
-  it.skip('should sum of the total of all of the Fibonacci numbers under 200', async () => {
-    const observable$ = from(fibonacci()).pipe();
+  it('should sum of the total of all of the Fibonacci numbers under 200', async () => {
+    const observable$ = from(fibonacci()).pipe(
+      takeWhile((val) => val < 200),
+      reduce((tot, val) => tot + val, 0)
+    );
 
     expect(await getResult(observable$)).toEqual([376]);
   });
 
-  it.skip('should merge each object emited into a single object, emitting each state along the way', async () => {
+  it('should merge each object emited into a single object, emitting each state along the way', async () => {
     const observable$ = of(
       { isRunning: true },
       { currentSpeed: 100 },
       { currentSpeed: 200 },
       { distance: 500 },
-    ).pipe();
+    ).pipe(
+      scan((state, next) => ({...state, ...next}), {})
+    );
 
     expect(await getResult(observable$)).toEqual([
       { isRunning: true },

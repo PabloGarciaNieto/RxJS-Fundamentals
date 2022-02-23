@@ -23,4 +23,4 @@ export const addFact = ({ fact }) => {
 };
 export const addFacts = (data) => data.facts.forEach(addFact);
 
-export const endpoint = 'https://localhost:3333/api/facts';
+//export const endpoint = 'https://localhost:3333/api/facts';

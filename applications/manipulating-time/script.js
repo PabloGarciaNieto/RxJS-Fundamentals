@@ -19,6 +19,11 @@ import {
   setStatus,
 } from './utilities';
 
-const buttonClicks$ = fromEvent(button, 'click');
+const panicClicks$ = fromEvent(panicButton, 'click');
+const buttonClicks$ = fromEvent(button, 'click').pipe(
+  //Here you can play with all the operatos above and see how they work
+  debounce(() => panicClicks$),
+);
 
+panicClicks$.subscribe();
 buttonClicks$.subscribe(addMessageToDOM);
