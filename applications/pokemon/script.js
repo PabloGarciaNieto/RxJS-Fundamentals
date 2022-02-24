@@ -14,7 +14,8 @@ import {
   concat,
   take,
   EMPTY,
-  pluck
+  pluck,
+  first
 } from 'rxjs';
 
 import { fromFetch } from 'rxjs/fetch';
@@ -26,6 +27,7 @@ import {
   endpointFor,
   search,
   form,
+  renderPokemon
 } from '../pokemon/utilities';
 
 /* ACHTUNG!!! */
@@ -33,21 +35,38 @@ import {
 //this error appears in the console:"Cannot read property 'prototype' of undefined"
 //checked the top line of this file, if it's => <import  from 'express'>, just remove it.
 
-const endpoint = 'http://localhost:3333/api/pokemon/search/';
+const endpoint = 'http://localhost:3333/api/pokemon/';
 
-const search$ = fromEvent(search, 'input').pipe(
-  debounceTime(300),//CAVEAT this makes the fetch only after 300ms so we wouldn't need the "switchMap((searchTerm)..." below, just a "mergeMap((searchTerm)...."
-  map((event) => event.target.value),
-  switchMap((searchTerm) => {//As now we have some delay we don't care about the previous request "p".."pi"..."pik" So we use switchMap
-    //switchMap not only don't care about that petitions it cancels them either.
-    return fromFetch(endpoint + searchTerm + '?delay=1000&chaos=true').pipe(//'?delay=1000&chaos=true'=> coerced to see behaviour 
-      mergeMap((response) => response.json())
-    );
-  }),
-  tap(clearResults),
+const searchPokemon = (searchTerm) => {
+  return fromFetch(endpoint + 'search/' + searchTerm).pipe(
+    mergeMap((response) => response.json()),
+  );
+}
+
+const getPokemonData = (pokemon) => {
+  return fromFetch(endpoint + pokemon.id).pipe(
+    mergeMap((response) => response.json()),
+  );
+}
+
+const search$ = fromEvent(form, 'submit').pipe(
+  map(() => search.value),
+  switchMap(searchPokemon),
   pluck('pokemon'),//"pokemon" is the key of the array in the json response(we want just the array not all the json object of each search)
-  tap(addResults),
+  mergeMap((pokemon) => pokemon),//Gives us a stream of pokemon observable objects
+  first(),//We care just for the first of them all
+  switchMap((pokemon) => {
+    const pokemon$ = of(pokemon);
+    const additionalPokemonData$ = getPokemonData(pokemon).pipe(
+      map((data) => ({
+        ...pokemon,
+        data
+      })),
+    );
+    return merge(pokemon$, additionalPokemonData$);
+  }),
+  tap(renderPokemon),
 );
 
-search$.subscribe();
+search$.subscribe(console.log);
 
