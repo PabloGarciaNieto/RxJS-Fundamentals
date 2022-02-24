@@ -1,4 +1,4 @@
-import { fromEvent, of, timer, merge, NEVER } from 'rxjs';
+import { fromEvent, of, timer, merge, NEVER, pipe } from 'rxjs';
 import { fromFetch } from 'rxjs/fetch';
 import {
   catchError,
@@ -26,54 +26,45 @@ import {
 //this error appears in the console:"Cannot read property 'prototype' of undefined"
 //checked the top line of this file, if it's => <import  from 'express'>, just remove it.
 
-/* First part of exercise, where we asume that the server never goes down(pure Utopia jajaja)
+//Fourth scenario: 
 const endpoint = 'http://localhost:3333/api/facts';
+//\-----?flakiness=2 to coerce errors and check if the catch error works properly
 
-const fetch$ = fromEvent(fetchButton, 'click').pipe(
-  mergeMap(() => {
-    return fromFetch(endpoint).pipe(mergeMap((response) => response.json()));
-  })
-);
+//Fetch the data from the API, catch errors and display some UI, retry the petition in case of error
+//
+const fetchData = () => {
+  return fromFetch(endpoint).pipe(
+    mergeMap((response) => {
+      if (response.ok) {
+        return response.json();
+      } else {
+        throw new Error('Something went wrong');
+      }
+    }),
+    retry(4),//retry the petition 4 times before catch the error.
+    catchError((error) => {
+      return of({error: error.message});//"of" to convert the string into an observable
+    }),//cause the "fetch$.subscribe" is waiting an observable in the stream not a primitive 
+  );
+}
 
-fetch$.subscribe(addFacts); */
+const fetch$ = fromEvent(fetchButton, 'click').pipe(mapTo(true));//Start the fetch stream
+const stop$ = fromEvent(stopButton, 'click').pipe(mapTo(false));//Stop the fetch stream
 
-/* Second scenario: A slow API response.
-const endpoint = 'http://localhost:3333/api/facts?delay=2000&chaos=true';//coerce a server delay
-
-const fetch$ = fromEvent(fetchButton, 'click').pipe(
-  exhaustMap(() => {//Until the pending petition is not resolve, you can`t make a new one
-    return fromFetch(endpoint).pipe(mergeMap((response) => response.json()));
-  })
-);
-
-fetch$.subscribe(addFacts);  */
-//Third scenario: The API return an error
-const endpoint = 'http://localhost:3333/api/facts?delay=2000&chaos=true&flakiness=1';//coerce an error
-
-const fetch$ = fromEvent(fetchButton, 'click').pipe(
-  exhaustMap(() => {
-    return fromFetch(endpoint).pipe(
-      tap(clearError),//Remove error message after the API response works again
-      mergeMap((response) => {
-        if (response.ok) {
-          return response.json();
-        } else {
-          throw new Error('Something went wrong');
-        }
-      }),
-      retry(4),//retry the petition 4 times before catch the error.
-    );
+const factStream$ = merge(fetch$, stop$).pipe(
+  switchMap(shouldFetch => {
+    if (shouldFetch) {
+      return timer(0, 5000).pipe(//Start inmediately and fetch a new petition every 5 seconds
+        tap(() => {//Clean before each data fetch
+          clearError();
+          clearFacts();
+        }),
+        exhaustMap(fetchData)//Fetch the data one by one(exhaustMap)
+      );
+    } else {
+      return NEVER;//Stop the fetch stream
+    }
   }),
-  catchError((error) => {
-    return of({error: error.message});//"of" to convert the string into an observable
-  }),//cause the "fetch$.subscribe" is waiting an observable in the stream not a primitive 
 );
 
-fetch$.subscribe(({facts, error}) => {
-  if (error) {
-    return setError(error);
-  }
-
-  clearFacts();
-  addFacts({facts});
-}); 
+factStream$.subscribe(addFacts); 

@@ -21,6 +21,13 @@ export const clearError = () => {
 export const addFact = ({ fact }) => {
   factsSection.appendChild(createElement(fact, { classList: ['dog-fact'] }));
 };
-export const addFacts = (data) => data.facts.forEach(addFact);
+export const addFacts = (data) => {
+  if (data.facts !== undefined) {
+    data.facts.forEach(addFact)
+  } else {
+    console.log('error');
+  }
+  
+};
 
 //export const endpoint = 'https://localhost:3333/api/facts';
