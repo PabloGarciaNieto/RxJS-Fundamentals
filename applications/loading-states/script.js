@@ -10,3 +10,11 @@ import {
   form,
   fetchData,
 } from './utilities';
+
+const loading$ = fromEvent(form, 'submit').pipe(
+  tap(() => showLoading(true)),
+  exhaustMap(() => fetchData()),
+  tap(() => showLoading(false))
+);
+
+loading$.subscribe();
