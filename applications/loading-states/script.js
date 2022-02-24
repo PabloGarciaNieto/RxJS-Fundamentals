@@ -11,10 +11,20 @@ import {
   fetchData,
 } from './utilities';
 
-const loading$ = fromEvent(form, 'submit').pipe(
-  tap(() => showLoading(true)),
-  exhaustMap(() => fetchData()),
+//Second scenario: There's a delay
+
+const showLoading$ = of(true).pipe(
+  delay(+showLoadingForAtLeastField.value),
+  tap(() => showLoading(true))
+)
+
+const hideLoading$ = of(true).pipe(
+  delay(+showLoadingAfterField.value),
   tap(() => showLoading(false))
+)
+
+const loading$ = fromEvent(form, 'submit').pipe(
+  exhaustMap(() => concat(showLoading$, fetchData(), hideLoading$)),
 );
 
 loading$.subscribe();
