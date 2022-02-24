@@ -26,27 +26,6 @@ import {
 //this error appears in the console:"Cannot read property 'prototype' of undefined"
 //checked the top line of this file, if it's => <import  from 'express'>, just remove it.
 
-/* First part of exercise, where we asume that the server never goes down(pure Utopia jajaja)
-const endpoint = 'http://localhost:3333/api/facts';
-
-const fetch$ = fromEvent(fetchButton, 'click').pipe(
-  mergeMap(() => {
-    return fromFetch(endpoint).pipe(mergeMap((response) => response.json()));
-  })
-);
-
-fetch$.subscribe(addFacts); */
-
-/* Second scenario: A slow API response.
-const endpoint = 'http://localhost:3333/api/facts?delay=2000&chaos=true';//coerce a server delay
-
-const fetch$ = fromEvent(fetchButton, 'click').pipe(
-  exhaustMap(() => {//Until the pending petition is not resolve, you can`t make a new one
-    return fromFetch(endpoint).pipe(mergeMap((response) => response.json()));
-  })
-);
-
-fetch$.subscribe(addFacts);  */
 //Third scenario: The API return an error
 const endpoint = 'http://localhost:3333/api/facts?delay=2000&chaos=true&flakiness=1';//coerce an error
 
